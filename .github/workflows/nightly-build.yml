@@ -1,0 +1,83 @@
+name: Build ISO
+
+on:
+  schedule:
+    - cron: '1 0 * * *'  # Daily at 00:01 UTC
+  workflow_dispatch:  # Allow manual triggering
+
+jobs:
+  build-iso:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Build ISO
+      run: |
+        mkdir -p release
+        docker run --rm \
+          --privileged \
+          -e "HOOPOO_INSTALLER_REPO=rawalrauf/hoopoo" \
+          -e "HOOPOO_INSTALLER_REF=master" \
+          -e "HOOPOO_MIRROR=stable" \
+          -e "HOST_UID=$(id -u)" \
+          -e "HOST_GID=$(id -g)" \
+          -v "${{ github.workspace }}:/workspace" \
+          -v "${{ github.workspace }}/release:/out" \
+          archlinux/archlinux:latest \
+          bash -c "
+            pacman -Sy --noconfirm archlinux-keyring &&
+            pacman -Syu --noconfirm &&
+            pacman -S --noconfirm git sudo jq &&
+            cp -r /workspace/builder /builder &&
+            cp -r /workspace/configs /configs &&
+            mkdir -p /out &&
+            bash /builder/build-iso.sh
+          " 2>&1 | tee /tmp/build.log; status=${PIPESTATUS[0]}; grep -i 'broadcom\|apple-bcm\|target not found\|error:' /tmp/build.log | head -20; exit $status
+
+    - name: Upload to Cloudflare R2
+      run: |
+        ISO_FILE=$(ls release/*.iso | head -1)
+        ISO_NAME=$(basename "$ISO_FILE")
+        echo "ISO_FILE=$ISO_FILE" >> $GITHUB_ENV
+        echo "ISO_NAME=$ISO_NAME" >> $GITHUB_ENV
+        echo "DATE=$(date -u +%Y-%m-%d)" >> $GITHUB_ENV
+
+        # Delete old ISO objects from R2
+        aws s3 rm s3://hoopoo-iso/ --recursive \
+          --endpoint-url "$R2_ENDPOINT_URL" || true
+
+        # Upload new ISO
+        aws s3 cp "$ISO_FILE" "s3://hoopoo-iso/$ISO_NAME" \
+          --endpoint-url "$R2_ENDPOINT_URL"
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+        R2_ENDPOINT_URL: ${{ secrets.R2_ENDPOINT_URL }}
+
+    - name: Create GitHub Release on main repo
+      run: |
+        TAG="latest"
+        DOWNLOAD_URL="https://hoopoo-iso.rawabaloch78.workers.dev/$ISO_NAME"
+
+        # Delete old release if exists
+        gh release delete "$TAG" --repo "rawalrauf/hoopoo" --yes 2>/dev/null || true
+        git push origin --delete "$TAG" 2>/dev/null || true
+
+        printf '## Download\n\n[%s](%s)\n\nBuilt from commit `%s` on %s.\n' \
+          "$ISO_NAME" "$DOWNLOAD_URL" "${{ github.sha }}" "$DATE" > /tmp/release-notes.md
+
+        gh release create "$TAG" \
+          --repo "rawalrauf/hoopoo" \
+          --title "Hoopoo ISO $DATE" \
+          --notes-file /tmp/release-notes.md
+      env:
+        GH_TOKEN: ${{ secrets.MAIN_REPO_TOKEN }}
+

@@ -1,0 +1,78 @@
+#!/bin/bash
+# Build hoopoo + companion hoopoo packages from mounted source
+# (/hoopoo-installer + /hoopoo-pkgs) and drop the .pkg.tar.zst
+# files into the offline-mirror directory passed as $1.
+#
+# Run inside the ISO build container (build-iso.sh sources this).
+
+set -e
+
+offline_mirror_dir="$1"
+if [[ -z $offline_mirror_dir ]]; then
+  echo "Usage: build-hoopoo-packages.sh <offline-mirror-dir>" >&2
+  exit 1
+fi
+
+if [[ ! -d /hoopoo-installer ]]; then
+  echo "ERROR: /hoopoo-installer not mounted (pass --local-source or set HOOPOO_INSTALLER_PATH)" >&2
+  exit 1
+fi
+if [[ ! -d /hoopoo-pkgs ]]; then
+  echo "ERROR: /hoopoo-pkgs not mounted (set HOOPOO_PKGS_PATH or place ../hoopoo-pkgs)" >&2
+  exit 1
+fi
+
+work_dir=/tmp/hoopoo-pkg-build
+rm -rf "$work_dir"
+mkdir -p "$work_dir"
+
+# makepkg refuses to run as root; create a builder user with passwordless
+# sudo for pacman dep installation during the build, and hand it ownership
+# of the work dir so PKGDEST writes succeed.
+if ! id builder &>/dev/null; then
+  useradd -m -s /bin/bash builder
+fi
+echo 'builder ALL=(ALL) NOPASSWD: /usr/bin/pacman' > /etc/sudoers.d/99-hoopoo-pkg-builder
+chmod 440 /etc/sudoers.d/99-hoopoo-pkg-builder
+chown builder:builder "$work_dir"
+
+pacman -Sy --noconfirm
+
+# Order matters: hoopoo depends on hoopoo-settings/-installer which depend on
+# the base packages; hoopoo-installer depends on the others. Build leaves
+# first so dependents can pacman -S them from /tmp once needed. We don't
+# actually install during the build, so the order is mostly cosmetic — but
+# keeping it stable helps logs.
+packages=(
+  hoopoo-limine
+  hoopoo-settings
+  hoopoo
+  hoopoo-installer
+  hoopoo-nvim
+)
+
+for pkg in "${packages[@]}"; do
+  echo "----------------------------------------"
+  echo "Building $pkg"
+  echo "----------------------------------------"
+  pkg_work="$work_dir/$pkg"
+  cp -a "/hoopoo-pkgs/pkgbuilds/$pkg" "$pkg_work"
+  chown -R builder:builder "$pkg_work"
+
+  # --nodeps: don't install deps into the build container. We just need to
+  # produce the .pkg.tar.zst; pacman resolves runtime deps at install time on
+  # the target system from the offline mirror.
+  su builder -c "
+    cd '$pkg_work' &&
+    PKGDEST='$work_dir' \
+    HOOPOO_SRC=/hoopoo-installer \
+    makepkg --noconfirm --skippgpcheck --skipchecksums --nodeps -f
+  "
+done
+
+mkdir -p "$offline_mirror_dir"
+mv "$work_dir"/*.pkg.tar.zst "$offline_mirror_dir/"
+
+echo
+echo "Built hoopoo packages, placed in $offline_mirror_dir:"
+ls "$offline_mirror_dir"/hoopoo*.pkg.tar.zst | sed 's|^|  |'

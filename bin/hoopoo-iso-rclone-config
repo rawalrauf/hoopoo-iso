@@ -1,0 +1,16 @@
+#!/bin/bash
+hoopoo-pkg-add rclone
+mkdir -p ~/.config/rclone
+
+access_key=$(op read "op://Shared/Cloudflare Buckets/iso.hoopoo.org/access_key_id" --account Hoopoo)
+secret_access_key=$(op read "op://Shared/Cloudflare Buckets/iso.hoopoo.org/secret_access_key" --account Hoopoo)
+endpoint=$(op read "op://Shared/Cloudflare Buckets/iso.hoopoo.org/endpoint" --account Hoopoo)
+
+cat > ~/.config/rclone/rclone.conf << EOF
+[Hoopoo]
+type = s3
+provider = Cloudflare
+access_key_id = $access_key
+secret_access_key = $secret_access_key
+endpoint = $endpoint
+EOF
