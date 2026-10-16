@@ -3,7 +3,7 @@
 
 iso_name="hoopoo"
 iso_label="HOOPOO_$(date --date="@${SOURCE_DATE_EPOCH:-$(date +%s)}" +%Y%m)"
-iso_publisher="Hoopoo <https://hoopoo.org>"
+iso_publisher="Hoopoo <https://hoopoo.dev>"
 iso_application="Hoopoo Installer"
 iso_version="$(date --date="@${SOURCE_DATE_EPOCH:-$(date +%s)}" +%Y.%m.%d)"
 install_dir="arch"

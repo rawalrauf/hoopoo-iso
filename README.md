@@ -4,7 +4,7 @@ The Hoopoo ISO streamlines [the installation of Hoopoo](https://learn.omacom.io/
 
 ## Downloading the latest ISO
 
-See the ISO link on [hoopoo.org](https://hoopoo.org).
+See the ISO link on [hoopoo.dev](https://hoopoo.dev).
 
 ## Creating the ISO
 
