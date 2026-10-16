@@ -4,6 +4,7 @@ set -e
 
 # Note that these are packages installed to the Arch container used to build the ISO.
 pacman-key --init
+pacman-key --populate archlinux
 pacman --noconfirm -Sy archlinux-keyring
 pacman --noconfirm -Sy archiso git sudo base-devel jq grub
 
