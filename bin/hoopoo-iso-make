@@ -40,14 +40,9 @@ while [[ $# -gt 0 ]]; do
     HOOPOO_MIRROR=edge
     shift
     ;;
-  --rc)
-    HOOPOO_MIRROR=rc
-    HOOPOO_INSTALLER_REF=rc
-    shift
-    ;;
   *)
     echo "Unknown option: $1"
-    echo "Usage: $0 [--no-cache] [--no-boot-offer] [--debug] [--dev|--rc] [--local-source <installer-checkout> <pkgs-checkout>]"
+    echo "Usage: $0 [--no-cache] [--no-boot-offer] [--debug] [--dev] [--local-source <installer-checkout> <pkgs-checkout>]"
     exit 1
     ;;
   esac
@@ -143,7 +138,7 @@ if [ -d "/var/cache/pacman/pkg" ]; then
 fi
 
 # Mount the build cache directory where packages are downloaded. Keyed by
-# channel so stable/edge/rc don't pollute each other but the cache persists
+# channel so stable/edge don't pollute each other but the cache persists
 # across days (different channels have different package sets; days don't).
 # hoopoo* packages always rebuild fresh inside the container regardless of
 # what's in the cache (build-hoopoo-packages.sh nukes its work dir and the
