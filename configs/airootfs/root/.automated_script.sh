@@ -32,6 +32,12 @@ install_arch() {
 }
 
 install_hoopoo() {
+  # Populate the target's pacman keyring chroot-free, using the keyring files
+  # already installed into /mnt by pacstrap (from hoopoo-keyring package)
+  pacman-key --gpgdir /mnt/etc/pacman.d/gnupg \
+    --populate-from /mnt/usr/share/pacman/keyrings \
+    --populate archlinux hoopoo
+
   chroot_bash -lc "sudo pacman -S --noconfirm --needed gum" >/dev/null
   chroot_bash -lc "source /home/$HOOPOO_USER/.local/share/hoopoo/install.sh"
 
