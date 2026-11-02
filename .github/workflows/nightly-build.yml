@@ -1,9 +1,7 @@
 name: Build ISO
 
 on:
-  schedule:
-    - cron: '1 0 * * *'  # Daily at 00:01 UTC
-  workflow_dispatch:  # Allow manual triggering
+  workflow_dispatch:
 
 jobs:
   build-iso:
@@ -65,7 +63,7 @@ jobs:
     - name: Create GitHub Release on main repo
       run: |
         TAG="latest"
-        DOWNLOAD_URL="https://hoopoo-iso.rawabaloch78.workers.dev/$ISO_NAME"
+        DOWNLOAD_URL="https://iso.hoopoo.net/$ISO_NAME"
 
         # Delete old release if exists
         gh release delete "$TAG" --repo "rawalrauf/hoopoo" --yes 2>/dev/null || true
