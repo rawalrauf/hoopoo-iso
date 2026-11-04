@@ -10,7 +10,7 @@ pacman --noconfirm -Sy archiso git sudo base-devel jq grub
 
 # Import Hoopoo GPG key so hoopoo mirror packages are verified during ISO builds
 pacman-key --add /builder/hoopoo.gpg
-pacman-key --lsign-key 070030E5D914817BA797F66AAF1C8F036A5E73FD
+pacman-key --lsign-key D3931CBE26A484582489EEB7394AFBE6E502DB8F
 pacman --config /configs/pacman-online-${HOOPOO_MIRROR}.conf --noconfirm -Sy hoopoo-keyring
 pacman-key --populate hoopoo
 
