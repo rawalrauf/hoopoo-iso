@@ -67,11 +67,6 @@ jobs:
         sha256sum "$ISO_NAME" > sha256sums.txt
         b2sum "$ISO_NAME" > b2sums.txt
         
-        # Create symlinks (will be uploaded as separate files)
-        echo "Creating symlink targets..."
-        cp "$ISO_NAME" "hoopoo-x86_64.iso"
-        cp "$ISO_NAME.sig" "hoopoo-x86_64.iso.sig"
-        
         echo "Generated files:"
         ls -lh *.iso *.sig *.txt
 
@@ -89,12 +84,6 @@ jobs:
         aws s3 cp "$ISO_NAME.sig" "s3://hoopoo-iso/$ISO_NAME.sig" \
           --endpoint-url "$R2_ENDPOINT_URL"
         
-        # Upload "latest" symlinks
-        aws s3 cp "hoopoo-x86_64.iso" "s3://hoopoo-iso/hoopoo-x86_64.iso" \
-          --endpoint-url "$R2_ENDPOINT_URL"
-        aws s3 cp "hoopoo-x86_64.iso.sig" "s3://hoopoo-iso/hoopoo-x86_64.iso.sig" \
-          --endpoint-url "$R2_ENDPOINT_URL"
-        
         # Upload checksums
         aws s3 cp sha256sums.txt "s3://hoopoo-iso/sha256sums.txt" \
           --endpoint-url "$R2_ENDPOINT_URL"
@@ -104,8 +93,6 @@ jobs:
         echo "Uploaded files to iso.hoopoo.net:"
         echo "- $ISO_NAME"
         echo "- $ISO_NAME.sig"
-        echo "- hoopoo-x86_64.iso (latest symlink)"
-        echo "- hoopoo-x86_64.iso.sig (latest symlink)"
         echo "- sha256sums.txt"
         echo "- b2sums.txt"
       env:
