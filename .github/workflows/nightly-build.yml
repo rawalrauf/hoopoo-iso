@@ -40,21 +40,74 @@ jobs:
             bash /builder/build-iso.sh
           " 2>&1 | tee /tmp/build.log; status=${PIPESTATUS[0]}; grep -i 'broadcom\|apple-bcm\|target not found\|error:' /tmp/build.log | head -20; exit $status
 
-    - name: Upload to Cloudflare R2
+    - name: Import GPG key
       run: |
-        ISO_FILE=$(ls release/*.iso | head -1)
+        echo "${{ secrets.GPG_PRIVATE_KEY }}" | gpg --batch --import
+        echo "${{ secrets.GPG_PASSPHRASE }}" | gpg --batch --yes --pinentry-mode loopback --passphrase-fd 0 --sign --detach-sign --default-key "${{ secrets.GPG_KEY_ID }}" /dev/null || true
+
+    - name: Generate signatures and checksums
+      run: |
+        cd release
+        ISO_FILE=$(ls *.iso | head -1)
         ISO_NAME=$(basename "$ISO_FILE")
+        BASE_NAME="${ISO_NAME%.iso}"
+        
         echo "ISO_FILE=$ISO_FILE" >> $GITHUB_ENV
         echo "ISO_NAME=$ISO_NAME" >> $GITHUB_ENV
+        echo "BASE_NAME=$BASE_NAME" >> $GITHUB_ENV
         echo "DATE=$(date -u +%Y-%m-%d)" >> $GITHUB_ENV
+        
+        # Generate GPG signature
+        echo "${{ secrets.GPG_PASSPHRASE }}" | gpg --batch --yes --pinentry-mode loopback \
+          --passphrase-fd 0 --sign --detach-sign \
+          --default-key "${{ secrets.GPG_KEY_ID }}" \
+          --output "$ISO_NAME.sig" "$ISO_NAME"
+        
+        # Generate checksums
+        sha256sum "$ISO_NAME" > sha256sums.txt
+        b2sum "$ISO_NAME" > b2sums.txt
+        
+        # Create symlinks (will be uploaded as separate files)
+        echo "Creating symlink targets..."
+        cp "$ISO_NAME" "hoopoo-x86_64.iso"
+        cp "$ISO_NAME.sig" "hoopoo-x86_64.iso.sig"
+        
+        echo "Generated files:"
+        ls -lh *.iso *.sig *.txt
 
+    - name: Upload to Cloudflare R2
+      run: |
+        cd release
+        
         # Delete old ISO objects from R2
         aws s3 rm s3://hoopoo-iso/ --recursive \
           --endpoint-url "$R2_ENDPOINT_URL" || true
-
-        # Upload new ISO
-        aws s3 cp "$ISO_FILE" "s3://hoopoo-iso/$ISO_NAME" \
+        
+        # Upload versioned files
+        aws s3 cp "$ISO_NAME" "s3://hoopoo-iso/$ISO_NAME" \
           --endpoint-url "$R2_ENDPOINT_URL"
+        aws s3 cp "$ISO_NAME.sig" "s3://hoopoo-iso/$ISO_NAME.sig" \
+          --endpoint-url "$R2_ENDPOINT_URL"
+        
+        # Upload "latest" symlinks
+        aws s3 cp "hoopoo-x86_64.iso" "s3://hoopoo-iso/hoopoo-x86_64.iso" \
+          --endpoint-url "$R2_ENDPOINT_URL"
+        aws s3 cp "hoopoo-x86_64.iso.sig" "s3://hoopoo-iso/hoopoo-x86_64.iso.sig" \
+          --endpoint-url "$R2_ENDPOINT_URL"
+        
+        # Upload checksums
+        aws s3 cp sha256sums.txt "s3://hoopoo-iso/sha256sums.txt" \
+          --endpoint-url "$R2_ENDPOINT_URL"
+        aws s3 cp b2sums.txt "s3://hoopoo-iso/b2sums.txt" \
+          --endpoint-url "$R2_ENDPOINT_URL"
+        
+        echo "Uploaded files to iso.hoopoo.net:"
+        echo "- $ISO_NAME"
+        echo "- $ISO_NAME.sig"
+        echo "- hoopoo-x86_64.iso (latest symlink)"
+        echo "- hoopoo-x86_64.iso.sig (latest symlink)"
+        echo "- sha256sums.txt"
+        echo "- b2sums.txt"
       env:
         AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
