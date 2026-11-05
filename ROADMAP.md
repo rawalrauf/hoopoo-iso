@@ -28,13 +28,6 @@
 - Configure bootloader for dual-boot
 - See: `plans/dual-boot.md`
 
-**Secure Boot support** - Work on consumer hardware with Secure Boot enabled
-- Microsoft-signed shim for first-stage boot
-- Machine Owner Key (MOK) enrollment during install
-- Sign kernel and bootloader components
-- Unified Kernel Image (UKI) support
-- See: `plans/consumer-secure-boot.md`
-
 ### Advanced Installation Options (6-12 months)
 
 **OEM/Pre-installation mode** - Factory installation support
@@ -43,12 +36,6 @@
 - Skip interactive questions
 - Suitable for bulk deployments
 - See: `plans/oem-install.md`
-
-**Protected partition install** - Preserve user data during reinstalls
-- Separate home partition that survives reinstalls
-- Incremental system updates
-- Rollback capability
-- See: `plans/protected-partition-install.md`
 
 ### Architecture Expansion (12+ months)
 
