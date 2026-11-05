@@ -145,11 +145,7 @@ configs/                ISO configuration files
   pacman-online-*.conf Pacman configs for building (with network)
   pacman-offline.conf  Pacman config for live ISO (offline mirror)
   profiledef.sh        ISO profile definition
-plans/                 Future improvements and feature plans
+plans/                 Future feature plans
 release/               Build output (ISOs, not tracked in git)
 README.md              This file
 ```
-
-## Roadmap
-
-See [ROADMAP.md](ROADMAP.md) for planned improvements.
