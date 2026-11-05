@@ -3,7 +3,7 @@
 
 iso_name="hoopoo"
 iso_label="HOOPOO_$(date --date="@${SOURCE_DATE_EPOCH:-$(date +%s)}" +%Y%m)"
-iso_publisher="Hoopoo <https://hoopoo.dev>"
+iso_publisher="Hoopoo <https://hoopoo.net>"
 iso_application="Hoopoo Installer"
 iso_version="$(date --date="@${SOURCE_DATE_EPOCH:-$(date +%s)}" +%Y.%m.%d)"
 install_dir="arch"
@@ -12,7 +12,7 @@ bootmodes=('bios.syslinux' 'uefi.grub')
 arch="x86_64"
 pacman_conf="pacman-offline.conf"
 airootfs_image_type="squashfs"
-airootfs_image_tool_options=('-comp' 'xz' '-Xbcj' 'x86' '-b' '4M' '-Xdict-size' '4M')
+airootfs_image_tool_options=('-comp' 'xz' '-Xbcj' 'x86' '-b' '2M' '-Xdict-size' '2M')
 bootstrap_tarball_compression=('zstd' '-c' '-T0' '--auto-threads=logical' '--long' '-19')
 file_permissions=(
   ["/etc/shadow"]="0:0:400"
